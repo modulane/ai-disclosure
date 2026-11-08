@@ -105,7 +105,9 @@ jobs:
             exit 0
           fi
           major=${tag%%.*}
-          if gh api "repos/$GH_REPO/git/refs/tags/$major" --silent 2> /dev/null; then
+          # git/ref/ (singular) matches the tag exactly; git/refs/ would also
+          # match v1.0.0 when v1 does not exist yet.
+          if gh api "repos/$GH_REPO/git/ref/tags/$major" --silent 2> /dev/null; then
             gh api --method PATCH "repos/$GH_REPO/git/refs/tags/$major" \
               -f sha="$GITHUB_SHA" -F force=true --silent
           else
