@@ -59,7 +59,8 @@ jobs:
         run: yarn check
 
   # Runs the action itself, as a workflow would, on each runner system. Its
-  # inputs replace the pull request description with known texts.
+  # inputs replace the pull request description with known texts. "$/" is
+  # this repository at the commit under test, so no checkout is needed.
   action:
     name: Action on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -71,14 +72,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
       - name: No AI tool was used
         id: none
-        uses: ./
+        uses: $/
         with:
           author: someone
           body: |
@@ -89,7 +85,7 @@ jobs:
 
       - name: AI tools were used, and how
         id: used
-        uses: ./
+        uses: $/
         with:
           author: someone
           body: |
@@ -102,7 +98,7 @@ jobs:
 
       - name: An exempt author
         id: exempt
-        uses: ./
+        uses: $/
         with:
           author: dependabot[bot]
           body: ''
@@ -110,7 +106,7 @@ jobs:
       - name: No disclosure, which must fail
         id: missing
         continue-on-error: true
-        uses: ./
+        uses: $/
         with:
           author: someone
           body: |
