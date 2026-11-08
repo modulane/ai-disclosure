@@ -2,7 +2,12 @@
 
 A GitHub Action that fails a pull request until its description says whether AI tools were used, and how.
 
-> **Status:** not released yet. The repository is private, so other repositories cannot use the action until it goes public.
+Reviewers read AI-assisted code differently, and more and more projects ask contributors to say when they used it. A line in the contributing guide is easy to miss. This check makes the question part of every pull request: one box to tick, a few words when AI helped, and nothing for bots.
+
+- **A required answer, not a reminder.** As a required status check, it blocks the merge until the author answers, either way.
+- **No judgement.** It never guesses whether code was written by AI. It only asks the author to say so.
+- **Safe on forks.** It reads the description from the event: no token, no checkout, no code from the pull request.
+- **Plain Markdown.** The disclosure is two boxes in your pull request template, worded as you like.
 
 ## How it works
 
@@ -47,6 +52,10 @@ jobs:
 ```
 
 `@v1` follows every 1.x release. To pin a release exactly, use its commit SHA with a `# v1.2.3` comment, and let Dependabot keep it up to date.
+
+Then add the **AI use** section above to `.github/PULL_REQUEST_TEMPLATE.md`, and require the check: in **Settings → Rules → Rulesets** (or branch protection), add a status check named `AI disclosure`.
+
+With a merge queue, also trigger the workflow on `merge_group` and skip the step there with `if: github.event_name == 'pull_request'`. The pull request was already checked, and a merge group has no description to read.
 
 ## Inputs
 

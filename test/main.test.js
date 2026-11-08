@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const main = fileURLToPath(new URL('../src/main.js', import.meta.url))
 
-// Runs the entry point as the action does, with only the given variables.
+// Runs the entry point as the runner does, with only the given inputs.
 function run(vars) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-disclosure-'))
   const output = join(dir, 'output')
@@ -23,8 +23,8 @@ function run(vars) {
 describe('main', () => {
   it('passes and sets the result output', () => {
     const { status, output } = run({
-      BODY: '## AI use\n\n- [x] No AI tool was used\n',
-      AUTHOR: 'versnic',
+      INPUT_BODY: '## AI use\n\n- [x] No AI tool was used\n',
+      INPUT_AUTHOR: 'versnic',
     })
     assert.equal(status, 0)
     assert.equal(output, 'result=none\n')
@@ -32,8 +32,8 @@ describe('main', () => {
 
   it('fails with an error annotation', () => {
     const { status, stdout, output } = run({
-      BODY: 'No section here.',
-      AUTHOR: 'versnic',
+      INPUT_BODY: 'No section here.',
+      INPUT_AUTHOR: 'versnic',
     })
     assert.equal(status, 1)
     assert.match(
@@ -45,9 +45,9 @@ describe('main', () => {
 
   it('lets exempt authors through without a description', () => {
     const { status, output } = run({
-      BODY: '',
-      AUTHOR: 'dependabot[bot]',
-      EXEMPT_AUTHORS: 'dependabot[bot]',
+      INPUT_BODY: '',
+      INPUT_AUTHOR: 'dependabot[bot]',
+      'INPUT_EXEMPT-AUTHORS': 'dependabot[bot]',
     })
     assert.equal(status, 0)
     assert.equal(output, 'result=exempt\n')
@@ -55,21 +55,32 @@ describe('main', () => {
 
   it('passes the custom wording and threshold on', () => {
     const { status } = run({
-      BODY: '## Use of AI\n\n- [x] Used: Claude\n',
-      AUTHOR: 'versnic',
-      SECTION: 'Use of AI',
-      USED_BOX: 'Used',
-      MIN_DETAILS: '6',
+      INPUT_BODY: '## Use of AI\n\n- [x] Used: Claude\n',
+      INPUT_AUTHOR: 'versnic',
+      INPUT_SECTION: 'Use of AI',
+      'INPUT_USED-BOX': 'Used',
+      'INPUT_MIN-DETAILS': '6',
     })
     assert.equal(status, 0)
   })
 
+  it('escapes the error annotation so it stays on one line', () => {
+    const { status, stdout } = run({
+      INPUT_BODY: '',
+      INPUT_AUTHOR: 'versnic',
+      INPUT_SECTION: '100% AI\nuse',
+    })
+    assert.equal(status, 1)
+    assert.match(stdout, /^::error::.*"## 100%25 AI%0Ause" section/m)
+  })
+
   it('falls back to the defaults for empty or invalid inputs', () => {
     const { status } = run({
-      BODY: '## AI use\n\n- [ ] No AI tool was used\n- [x] AI tools were used: Claude\n',
-      AUTHOR: 'versnic',
-      SECTION: '',
-      MIN_DETAILS: 'many',
+      INPUT_BODY:
+        '## AI use\n\n- [ ] No AI tool was used\n- [x] AI tools were used: Claude\n',
+      INPUT_AUTHOR: 'versnic',
+      INPUT_SECTION: '',
+      'INPUT_MIN-DETAILS': 'many',
     })
     assert.equal(status, 1)
   })

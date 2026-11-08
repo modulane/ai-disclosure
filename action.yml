@@ -32,20 +32,9 @@ inputs:
 outputs:
   result:
     description: '"none", "used" or "exempt" when the check passes, "missing" when it fails.'
-    value: ${{ steps.check.outputs.result }}
 
+# The runner's own Node.js runs the action, so it also works in container jobs
+# and on self-hosted runners without Node.js. It has no dependencies to bundle.
 runs:
-  using: composite
-  steps:
-    - name: Check the AI use section
-      id: check
-      shell: bash
-      env:
-        BODY: ${{ inputs.body }}
-        AUTHOR: ${{ inputs.author }}
-        EXEMPT_AUTHORS: ${{ inputs.exempt-authors }}
-        SECTION: ${{ inputs.section }}
-        NONE_BOX: ${{ inputs.none-box }}
-        USED_BOX: ${{ inputs.used-box }}
-        MIN_DETAILS: ${{ inputs.min-details }}
-      run: node "$GITHUB_ACTION_PATH/src/main.js"
+  using: node24
+  main: src/main.js
