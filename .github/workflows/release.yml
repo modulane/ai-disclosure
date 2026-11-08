@@ -4,7 +4,8 @@ name: Release
 # in the same run and from the same commit. semantic-release decides from the
 # commit messages whether a release is needed: fix: and feat: commits release,
 # docs:, style: and chore: do not. A release is a vX.Y.Z git tag and a GitHub
-# release; publishing to npm as well is described in the README.
+# release, and the major tag (v1) then moves to it, for workflows that use
+# modulane/ai-disclosure@v1.
 # The manual trigger remains available as a fallback, and its dry run shows
 # what the next release would be without creating anything.
 on:
@@ -33,9 +34,7 @@ jobs:
     name: Release
     needs: ci
     # Release only from main, and never from a fork that has Actions enabled.
-    # Replace REPO-NAME with the repository's name: until then this job never
-    # runs, which is also why it never runs in modulane/repo-template.
-    if: github.repository == 'modulane/REPO-NAME' && github.ref == 'refs/heads/main'
+    if: github.repository == 'modulane/ai-disclosure' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -90,3 +89,27 @@ jobs:
           else
             yarn semantic-release
           fi
+
+      # Workflows that use modulane/ai-disclosure@v1 get every 1.x release:
+      # after a release, its major tag moves to the commit it tagged. The tag
+      # is set through the API, so no git credential is needed.
+      - name: Move the major tag
+        if: inputs.dry-run != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag=$(git tag --points-at HEAD --list 'v*.*.*' | sort -V | tail -n 1)
+          if [ -z "$tag" ]; then
+            echo 'No release on this commit: the major tag stays where it is.'
+            exit 0
+          fi
+          major=${tag%%.*}
+          if gh api "repos/$GH_REPO/git/refs/tags/$major" --silent 2> /dev/null; then
+            gh api --method PATCH "repos/$GH_REPO/git/refs/tags/$major" \
+              -f sha="$GITHUB_SHA" -F force=true --silent
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" \
+              -f ref="refs/tags/$major" -f sha="$GITHUB_SHA" --silent
+          fi
+          echo "$major now points to $tag."

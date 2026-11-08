@@ -1,0 +1,51 @@
+name: AI use disclosure
+description: Fail a pull request until its description says whether AI tools were used, and how.
+author: modulane
+
+branding:
+  icon: check-square
+  color: purple
+
+inputs:
+  body:
+    description: The text to check. Defaults to the pull request description.
+    default: ${{ github.event.pull_request.body }}
+  author:
+    description: The login checked against exempt-authors. Defaults to the pull request author.
+    default: ${{ github.event.pull_request.user.login }}
+  exempt-authors:
+    description: Logins that need no disclosure, separated by commas or new lines.
+    default: dependabot[bot]
+  section:
+    description: The level-two heading of the section that holds the boxes.
+    default: AI use
+  none-box:
+    description: The start of the box that says no AI tool was used.
+    default: No AI tool was used
+  used-box:
+    description: The start of the box that says AI tools were used.
+    default: AI tools were used
+  min-details:
+    description: The fewest characters that describe the tools used and what they did.
+    default: '20'
+
+outputs:
+  result:
+    description: '"none", "used" or "exempt" when the check passes, "missing" when it fails.'
+    value: ${{ steps.check.outputs.result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check the AI use section
+      id: check
+      shell: bash
+      env:
+        BODY: ${{ inputs.body }}
+        AUTHOR: ${{ inputs.author }}
+        EXEMPT_AUTHORS: ${{ inputs.exempt-authors }}
+        SECTION: ${{ inputs.section }}
+        NONE_BOX: ${{ inputs.none-box }}
+        USED_BOX: ${{ inputs.used-box }}
+        MIN_DETAILS: ${{ inputs.min-details }}
+      run: node "$GITHUB_ACTION_PATH/src/main.js"

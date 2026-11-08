@@ -18,14 +18,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Replace this job with the repository's own checks: install, lint, type
-  # check, test and build, with a Node.js matrix (and an OS matrix for a CLI).
-  # In this reference repository it checks that every JSON file parses, so the
-  # labels and rulesets stay valid. List each new job in ci-passed below.
-  checks:
-    name: Checks
+  test:
+    name: Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # The even-numbered (LTS) lines that package.json "engines" allows.
+        node-version:
+          - 22
+          - 24
+          - 26
 
     steps:
       - name: Check out repository
@@ -33,16 +38,97 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check that every JSON file parses
+      # Corepack provides the Yarn version pinned in package.json
+      # "packageManager". It must be enabled before setup-node, which runs
+      # Yarn to find its cache. Node.js 25 and later no longer include
+      # Corepack, so it comes from the runner's default Node.js.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # Formatting, then the unit tests.
+      - name: Run checks and tests
+        run: yarn check
+
+  # Runs the action itself, as a workflow would, on each runner system. Its
+  # inputs replace the pull request description with known texts.
+  action:
+    name: Action on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: No AI tool was used
+        id: none
+        uses: ./
+        with:
+          author: someone
+          body: |
+            ## AI use
+
+            - [x] No AI tool was used
+            - [ ] AI tools were used, as described here:
+
+      - name: AI tools were used, and how
+        id: used
+        uses: ./
+        with:
+          author: someone
+          body: |
+            ## AI use
+
+            - [ ] No AI tool was used
+            - [x] AI tools were used, as described here:
+
+            Claude Code wrote the first draft of the tests.
+
+      - name: An exempt author
+        id: exempt
+        uses: ./
+        with:
+          author: dependabot[bot]
+          body: ''
+
+      - name: No disclosure, which must fail
+        id: missing
+        continue-on-error: true
+        uses: ./
+        with:
+          author: someone
+          body: |
+            ## What and why
+
+            Fixes the header.
+
+      - name: Check the results
+        shell: bash
+        env:
+          NONE: ${{ steps.none.outputs.result }}
+          USED: ${{ steps.used.outputs.result }}
+          EXEMPT: ${{ steps.exempt.outputs.result }}
+          MISSING_OUTCOME: ${{ steps.missing.outcome }}
         run: |
-          status=0
-          while IFS= read -r file; do
-            if ! node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$file"; then
-              echo "::error file=$file::Invalid JSON."
-              status=1
-            fi
-          done < <(git ls-files '*.json')
-          exit $status
+          echo "none=$NONE used=$USED exempt=$EXEMPT, missing: $MISSING_OUTCOME"
+          [ "$NONE" = none ] && [ "$USED" = used ] && [ "$EXEMPT" = exempt ] &&
+            [ "$MISSING_OUTCOME" = failure ]
 
   # The one CI check the main ruleset requires, so adding or dropping a job or
   # a Node.js version in the matrix never means editing the ruleset. It runs
@@ -51,7 +137,7 @@ jobs:
   ci-passed:
     name: CI passed
     if: always()
-    needs: [checks]
+    needs: [test, action]
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
