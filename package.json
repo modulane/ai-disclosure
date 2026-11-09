@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
+  "prettier": "@modulane/prettier-config",
   "engines": {
     "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
@@ -23,6 +24,7 @@
     "url": "https://github.com/modulane/ai-disclosure/issues"
   },
   "devDependencies": {
+    "@modulane/prettier-config": "^1.0.0",
     "prettier": "3.9.10",
     "semantic-release": "^25.0.9"
   },

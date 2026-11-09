@@ -89,6 +89,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@modulane/prettier-config@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@modulane/prettier-config@npm:1.0.0"
+  peerDependencies:
+    prettier: ^3.0.0
+  checksum: 10c0/987978cbe3ed5e052c571a4022bb13693a9accd64533089b81646c429fbb48b9d24eda18665542c78ee07e428120944b1cb3665e244f122ce5bbf408d0629cbd
+  languageName: node
+  linkType: hard
+
 "@npmcli/agent@npm:^4.0.0":
   version: 4.0.2
   resolution: "@npmcli/agent@npm:4.0.2"
@@ -692,6 +701,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ai-disclosure@workspace:."
   dependencies:
+    "@modulane/prettier-config": "npm:^1.0.0"
     prettier: "npm:3.9.10"
     semantic-release: "npm:^25.0.9"
   languageName: unknown
